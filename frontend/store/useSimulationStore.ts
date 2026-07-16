@@ -11,6 +11,7 @@ export interface Citizen {
   occupation: string;
   inventory?: Record<string, number>;
   personality?: { o: number; c: number; e: number; a: number; n: number };
+  is_sick?: boolean;
 }
 
 export interface SimEvent {
@@ -32,12 +33,18 @@ interface SimulationState {
   selectedAgentId: string | null;
   isConnected: boolean;
   socket: WebSocket | null;
+  width: number;
+  height: number;
+  terrainMap: number[][];
+  burningCells: [number, number][];
+  activeDisasters: any[];
   
   connectWorld: (worldId: string) => void;
   disconnect: () => void;
   selectAgent: (agentId: string | null) => void;
   sendSpeedCmd: (multiplier: number) => void;
   sendStepCmd: () => void;
+  summonDisaster: (type: string, x: number, y: number) => void;
 }
 
 export const useSimulationStore = create<SimulationState>((set, get) => ({
@@ -49,6 +56,11 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
   selectedAgentId: null,
   isConnected: false,
   socket: null,
+  width: 50,
+  height: 50,
+  terrainMap: [],
+  burningCells: [],
+  activeDisasters: [],
 
   connectWorld: (worldId: string) => {
     const existingSocket = get().socket;
@@ -66,7 +78,15 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
     ws.onmessage = (event) => {
       try {
         const msg = JSON.parse(event.data);
-        if (msg.type === "SIM_EVENT") {
+        if (msg.type === "CONNECTION_ESTABLISHED") {
+          set({
+            worldId: msg.world_id,
+            width: msg.width || 50,
+            height: msg.height || 50,
+            terrainMap: msg.terrain || [],
+            citizens: msg.citizens || {}
+          });
+        } else if (msg.type === "SIM_EVENT") {
           const payload = msg.payload;
           
           set((state) => {
@@ -84,7 +104,8 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
                 wealth: 10,
                 pos_x: x,
                 pos_y: y,
-                occupation: "Forager"
+                occupation: "Forager",
+                is_sick: false
               };
             } else if (payload.event_type === "MOVED") {
               const agentId = payload.source_entity_id;
@@ -95,11 +116,25 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
               }
             } else if (payload.event_type === "DIED") {
               delete updatedCitizens[payload.source_entity_id];
+            } else if (payload.event_type === "INFECTED") {
+              const agentId = payload.source_entity_id;
+              if (updatedCitizens[agentId]) {
+                updatedCitizens[agentId].is_sick = true;
+              }
+            } else if (payload.event_type === "HEALED") {
+              const agentId = payload.source_entity_id;
+              if (updatedCitizens[agentId]) {
+                updatedCitizens[agentId].is_sick = false;
+              }
             } else if (payload.event_type === "TICK_HEARTBEAT") {
+              const activeDisasters = payload.metadata.active_disasters || [];
+              const burningCells = payload.metadata.burning_cells || [];
               return {
                 tick: payload.tick,
                 weather: payload.metadata.weather || state.weather,
-                events: updatedEvents
+                events: updatedEvents,
+                activeDisasters,
+                burningCells
               };
             }
 
@@ -142,6 +177,13 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
     const ws = get().socket;
     if (ws && ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify({ action: "STEP" }));
+    }
+  },
+
+  summonDisaster: (type: string, x: number, y: number) => {
+    const ws = get().socket;
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ action: "SUMMON_DISASTER", disaster_type: type, x, y }));
     }
   }
 }));

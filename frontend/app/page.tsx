@@ -18,15 +18,20 @@ export default function Dashboard() {
     connectWorld,
     sendSpeedCmd,
     sendStepCmd,
-    selectAgent
+    selectAgent,
+    burningCells,
+    activeDisasters,
+    summonDisaster
   } = useSimulationStore();
 
   const [activeSpeed, setActiveSpeed] = useState(1);
+  const [selectedTool, setSelectedTool] = useState<string | null>(null);
+
   const selectedCitizen = selectedAgentId ? citizens[selectedAgentId] : null;
+  const sickCount = Object.values(citizens).filter((c) => c.is_sick).length;
 
   // Initialize connection on mount
   useEffect(() => {
-    // Connect to demo world on mount
     connectWorld('demo-civilization-uuid');
   }, [connectWorld]);
 
@@ -41,6 +46,13 @@ export default function Dashboard() {
       iron: 5.0 + Math.cos(tVal * 0.2) * 0.8 + (tVal * 0.01)
     };
   });
+
+  const handleCellClick = (x: number, y: number) => {
+    if (selectedTool) {
+      summonDisaster(selectedTool, x, y);
+      setSelectedTool(null);
+    }
+  };
 
   return (
     <main className="min-h-screen bg-background flex flex-col p-4 gap-4 text-gray-200">
@@ -63,6 +75,14 @@ export default function Dashboard() {
           <div className="flex flex-col items-center">
             <span className="text-gray-500 text-xs">POPULATION</span>
             <span className="font-mono text-accent font-bold text-lg">{Object.keys(citizens).length} Citizens</span>
+          </div>
+          <div className="flex flex-col items-center">
+            <span className="text-gray-500 text-xs">SICK RATE</span>
+            <span className="font-mono text-emerald-500 font-bold text-lg">{sickCount} Sick</span>
+          </div>
+          <div className="flex flex-col items-center">
+            <span className="text-gray-500 text-xs">FIRES ACTIVE</span>
+            <span className="font-mono text-orange-500 font-bold text-lg">{burningCells.length} Tiles</span>
           </div>
           <div className="flex flex-col items-center">
             <span className="text-gray-500 text-xs">CLIMATE WEATHER</span>
@@ -109,16 +129,70 @@ export default function Dashboard() {
 
       {/* Main Content Layout */}
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Left Column: 3D Spatial Grid Viewport */}
-        <div className="lg:col-span-2 flex flex-col h-[560px]">
-          <WorldViewport />
+        {/* Left Column: 3D Spatial Grid Viewport & Crisis Control Panel */}
+        <div className="lg:col-span-2 flex flex-col h-[650px] justify-between">
+          <div className="flex-1 h-[420px]">
+            <WorldViewport onCellClick={handleCellClick} />
+          </div>
+          
+          {/* Wrath of God Control Panel */}
+          <div className="bg-panel border border-gray-800 p-4 rounded-lg mt-4 flex flex-col gap-2">
+            <h3 className="text-sm font-bold text-gray-400 flex items-center gap-1.5 uppercase tracking-wide">
+              <ShieldAlert className="text-red-500 w-4 h-4 animate-pulse" /> Wrath of God: Crisis Summoner Panel
+            </h3>
+            <div className="grid grid-cols-3 gap-3">
+              <button 
+                onClick={() => setSelectedTool(selectedTool === 'METEOR' ? null : 'METEOR')}
+                className={`flex flex-col items-center justify-center p-3 rounded-lg border transition ${
+                  selectedTool === 'METEOR' 
+                    ? 'bg-red-950 border-red-500 text-red-300 font-bold' 
+                    : 'bg-panel border-gray-800 hover:border-red-800 text-gray-300 hover:bg-gray-800'
+                }`}
+              >
+                <span className="text-lg mb-1">☄️</span>
+                <span className="text-xs">Imminent Meteor</span>
+                <span className="text-[10px] text-gray-500 mt-1">Click grid tile to strike</span>
+              </button>
+
+              <button 
+                onClick={() => setSelectedTool(selectedTool === 'EPIDEMIC' ? null : 'EPIDEMIC')}
+                className={`flex flex-col items-center justify-center p-3 rounded-lg border transition ${
+                  selectedTool === 'EPIDEMIC' 
+                    ? 'bg-emerald-950 border-emerald-500 text-emerald-300 font-bold' 
+                    : 'bg-panel border-gray-800 hover:border-emerald-800 text-gray-300 hover:bg-gray-800'
+                }`}
+              >
+                <span className="text-lg mb-1">🦠</span>
+                <span className="text-xs">Viral Epidemic</span>
+                <span className="text-[10px] text-gray-500 mt-1">Click grid to unleash virus</span>
+              </button>
+
+              <button 
+                onClick={() => setSelectedTool(selectedTool === 'ACID_RAIN' ? null : 'ACID_RAIN')}
+                className={`flex flex-col items-center justify-center p-3 rounded-lg border transition ${
+                  selectedTool === 'ACID_RAIN' 
+                    ? 'bg-yellow-950 border-yellow-500 text-yellow-300 font-bold' 
+                    : 'bg-panel border-gray-800 hover:border-yellow-800 text-gray-300 hover:bg-gray-800'
+                }`}
+              >
+                <span className="text-lg mb-1">🌧️</span>
+                <span className="text-xs">Corrosive Acid Rain</span>
+                <span className="text-[10px] text-gray-500 mt-1">Click grid to trigger storm</span>
+              </button>
+            </div>
+            {selectedTool && (
+              <div className="text-xs text-yellow-500 bg-yellow-950/20 border border-yellow-905/30 px-3 py-1.5 rounded text-center animate-pulse">
+                Tool active: Click any coordinate cell on the 3D viewport above to summon {selectedTool}!
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Right Column: Citizen Details & Charts */}
         <div className="flex flex-col gap-4">
           {/* Selected Citizen Card */}
-          <div className="bg-panel border border-gray-800 p-5 rounded-lg flex-1 flex flex-col">
-            <h3 className="text-sm font-bold text-gray-400 mb-3 flex items-center gap-1.5">
+          <div className="bg-panel border border-gray-800 p-5 rounded-lg flex-1 flex flex-col justify-between">
+            <h3 className="text-sm font-bold text-gray-400 mb-3 flex items-center gap-1.5 uppercase tracking-wide">
               <Cpu className="text-accent w-4 h-4" /> Agent Profiler
             </h3>
             
@@ -134,12 +208,19 @@ export default function Dashboard() {
                     <div>Wealth: <span className="text-yellow-500 font-mono">${selectedCitizen.wealth.toFixed(1)}</span></div>
                     <div>Health: <span className="text-red-500 font-mono">{selectedCitizen.health.toFixed(0)}%</span></div>
                     <div>Coordinates: <span className="text-blue-500 font-mono">[{selectedCitizen.pos_x}, {selectedCitizen.pos_y}]</span></div>
+                    <div>Status: <span className={`font-semibold ${selectedCitizen.is_sick ? 'text-emerald-400 animate-pulse' : 'text-gray-400'}`}>
+                      {selectedCitizen.is_sick ? 'SICK (VIRUS)' : 'HEALTHY'}
+                    </span></div>
                   </div>
                 </div>
 
                 <div className="border-t border-gray-800 pt-3">
                   <span className="text-xs text-gray-500 uppercase tracking-wider block mb-1">Decisions & Logic</span>
-                  <p className="text-xs italic text-gray-300">"Decided to explore local forests to secure wood stock. Expected action complete in 4 ticks."</p>
+                  <p className="text-xs italic text-gray-300">
+                    {selectedCitizen.is_sick 
+                      ? 'Decided to quarantine and isolate to prevent virus spreading, or seek healing medicine.' 
+                      : 'Decided to forage plain tiles to secure food stocks and keep starvation at bay.'}
+                  </p>
                 </div>
 
                 <button 
@@ -164,7 +245,7 @@ export default function Dashboard() {
       </div>
 
       {/* Bottom Log Feed */}
-      <footer className="bg-panel border border-gray-800 rounded-lg p-4 max-h-[200px] flex flex-col overflow-hidden">
+      <footer className="bg-panel border border-gray-800 rounded-lg p-4 max-h-[180px] flex flex-col overflow-hidden">
         <h3 className="text-xs font-bold text-gray-400 mb-2 uppercase tracking-widest flex items-center gap-1">
           <Activity className="text-primary w-4 h-4" /> Live Event History Feed (DuckDB Log Stream)
         </h3>

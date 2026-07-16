@@ -30,21 +30,25 @@ class SimulationScheduler:
             del self.running_tasks[world_id]
 
     def set_speed(self, world_id: str, multiplier: float):
-        """Alter speed of simulation (1x, 10x, 100x etc.) by shifting delay duration"""
+        """Alter speed of simulation (1x, 10x, 100x etc.) by shifting delay duration or pausing"""
         if world_id in self.active_simulations:
-            # Base delay is 1.0 second. speed multiplier = 10 -> delay = 0.1s
-            self.tick_delays[world_id] = max(0.001, 1.0 / multiplier)
+            if multiplier <= 0:
+                self.pause(world_id)
+            else:
+                self.start(world_id)
+                # Base delay is 1.0 second. speed multiplier = 10 -> delay = 0.1s
+                self.tick_delays[world_id] = max(0.001, 1.0 / multiplier)
 
     def step_once(self, world_id: str):
         """Manually execute a single tick"""
         if world_id in self.active_simulations:
-            self.active_simulations[world_id].step()
+            asyncio.create_task(self.active_simulations[world_id].step())
 
     async def _simulation_loop(self, world_id: str):
         engine = self.active_simulations[world_id]
         try:
             while True:
-                engine.step()
+                await engine.step()
                 delay = self.tick_delays.get(world_id, 1.0)
                 await asyncio.sleep(delay)
         except asyncio.CancelledError:

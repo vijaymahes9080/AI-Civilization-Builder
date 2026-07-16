@@ -142,3 +142,16 @@ out/
 venv/
 ENV/
 env/
+
+# Databases
+*.db
+*.sqlite
+*.sqlite3
+*.duckdb
+
+# Vector Indexes
+*faiss_index*
+
+# Local testing and custom logs
+*.log
+.system_generated/

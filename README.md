@@ -10,6 +10,8 @@ With a FastAPI backend, a vector-based memory system, and an interactive 3D web 
 
 - **Brain-in-a-Grid Citizens**: Each agent is an autonomous citizen with a Big Five personality profile, a dynamic DNA sequence, evolving needs (hunger, health, energy), and a cognitive reasoning pipeline.
 - **Cognitive Reasoner & Local AI**: Agents make choices by reflecting on recent vector memories and querying local models (e.g., Llama 3 or Qwen2.5-Coder via Ollama) with seamless fallback to rule-based behavioral heuristics if the LLM is offline or times out.
+- **Wrath of God Disaster Simulator**: Trigger environmental crises including imminent meteor strikes, viral epidemic outbreaks, and corrosive acid rain storms on selected coordinates directly from the interactive 3D viewport.
+- **Active Emergency Adaptive Heuristics**: Citizens adapt dynamically to threats (fleeing fire tiles, quarantine/medication for virus outbreaks, and searching plains/forests for healing herbs).
 - **Vector Memory (FAISS)**: Persistent, semantic memory storage using `sentence-transformers` and `FAISS` to store and retrieve agent observations, decisions, and outcomes.
 - **Hybrid Data Architecture**:
   - **SQLite**: Stores active relational states (worlds, alive/dead citizens).
@@ -132,6 +134,22 @@ npm run dev
 Open `http://localhost:3000` in your browser. The web client will automatically attempt to connect to the backend websocket route: `ws://localhost:8000/ws/simulation/demo-civilization-uuid`.
 
 ---
+
+## ⛈️ The Wrath of God: Crisis Summoner
+
+The platform features an active simulation of environmental disasters and dynamic climate impacts:
+1. **☄️ Imminent Meteor**: Strike coordinates to spawn immediate fire zones that expand to neighboring tiles, burning resources and agents.
+2. **🦠 Viral Epidemic**: Release infections starting from patient zero. Sick agents lose health over time and transmit the virus to adjacent citizens once they reach critical sickness level (>30).
+3. **🌧️ Corrosive Acid Rain**: Summons a toxic cloud eroding crop/resource nodes and slowly decaying citizen health.
+
+Citizens adapt to crises in real-time. If an active disaster or fire is detected nearby, citizens trigger emergency actions:
+- `FLEE`: Run away from fire paths and threat coordinates.
+- `EXTINGUISH`: Attempt to fight fires on adjacent tiles.
+- `QUARANTINE`: Isolate physically from neighbors to prevent viral transmission.
+- `MEDICATE`: Use herbs or forage plains to seek healing resources and recover health.
+
+---
+
 
 ## 🔬 SDK Modding & Custom Plugins
 

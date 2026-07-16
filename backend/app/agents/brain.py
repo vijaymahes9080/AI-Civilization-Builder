@@ -63,9 +63,11 @@ Current Status:
 - Tick: {tick}
 - Needs (0-100 scale): {json.dumps(needs_summary)}
 - Inventory: {json.dumps(env.get('inventory', {}))}
+- Health Status: {"SICK (VIRAL INFECTION)" if env.get('is_sick') else "HEALTHY"}, {"BURNING/ON FIRE!" if env.get('is_burning') else "NOT BURNING"}
 - Nearby Citizens: {json.dumps(env.get('nearby_citizens', []))}
 - Climate/Weather: {env.get('weather', 'Sunny')}, Temp: {env.get('temperature', 20)}C
-- Surrounding cells: {json.dumps(env.get('cells', []))}
+- Surrounding cells (check if on_fire or has resources): {json.dumps(env.get('cells', []))}
+- Active Disasters Nearby: {json.dumps(env.get('active_disasters', []))}
 
 Recent Memories:
 {memories_str}
@@ -73,7 +75,7 @@ Recent Memories:
 Decide your next action and explain the rationale. 
 Return your response ONLY as a valid JSON object matching this schema:
 {{
-  "action_type": "MOVE" | "FORAGE" | "TRADE" | "REST" | "TALK",
+  "action_type": "MOVE" | "FORAGE" | "TRADE" | "REST" | "TALK" | "FLEE" | "EXTINGUISH" | "QUARANTINE" | "MEDICATE",
   "target_coordinate": [x, y],
   "speech_content": "optional dialogue text if action is TALK",
   "action_description": "short description of your action",
@@ -112,6 +114,41 @@ Return your response ONLY as a valid JSON object matching this schema:
 
     def _get_heuristic_fallback_decision(self, env: Dict[str, Any]) -> Dict[str, Any]:
         """Provides instant fallback if LLM is offline or times out"""
+        if env.get("is_burning"):
+            safe_cells = [c for c in env.get("cells", []) if not c.get("on_fire")]
+            target = safe_cells[0] if safe_cells else {"x": 25, "y": 25}
+            return {
+                "action_type": "FLEE",
+                "target_coordinate": [target.get("x"), target.get("y")],
+                "action_description": "Fleeing burning tiles",
+                "explanation": "I am on fire! Fleeing to adjacent safe cell."
+            }
+
+        disasters = env.get("active_disasters", [])
+        if disasters:
+            d = disasters[0]
+            return {
+                "action_type": "FLEE",
+                "target_coordinate": [d.get("x"), d.get("y")],
+                "action_description": "Fleeing nearby disaster",
+                "explanation": f"Fleeing dangerous {d.get('type')} disaster."
+            }
+
+        if env.get("is_sick"):
+            citizens = env.get("nearby_citizens", [])
+            if len(citizens) > 0:
+                return {
+                    "action_type": "QUARANTINE",
+                    "action_description": "Quarantining self",
+                    "explanation": "I am sick. Isolating to protect others."
+                }
+            else:
+                return {
+                    "action_type": "MEDICATE",
+                    "action_description": "Seeking herbal medicine",
+                    "explanation": "Searching Plain/Forest tiles for healing herbs."
+                }
+
         needs = self.needs.get_needs_summary()
         if needs["hunger"] > 60:
             return {
@@ -119,6 +156,7 @@ Return your response ONLY as a valid JSON object matching this schema:
                 "action_description": "Forage food resources",
                 "explanation": "Hunger is high, fall back to search food."
             }
+            
         return {
             "action_type": "MOVE",
             "action_description": "Explore the region",
