@@ -1,5 +1,9 @@
 # AI Civilization Builder 🌍🤖
 
+<p align="center">
+  <img src="docs/assets/dashboard_mockup.png" alt="AI Civilization Builder Dashboard UI Mockup" width="100%">
+</p>
+
 AI Civilization Builder is an open-source, local-first simulation platform for creating, observing, and modifying living, programmable civilizations. Instead of static NPCs or simple state-machine agents, this platform combines spatial agent-based models (using the Mesa framework) with cognitive reasoning pipelines powered by local LLMs (via Ollama). 
 
 With a FastAPI backend, a vector-based memory system, and an interactive 3D web interface built with Next.js and React Three Fiber, you can run detailed sociological, economic, and political simulations completely offline.
@@ -136,6 +140,10 @@ Open `http://localhost:3000` in your browser. The web client will automatically 
 ---
 
 ## ⛈️ The Wrath of God: Crisis Summoner
+
+<p align="center">
+  <img src="docs/assets/cognitive_architecture.png" alt="AI Citizen Cognitive Architecture Diagram" width="100%">
+</p>
 
 The platform features an active simulation of environmental disasters and dynamic climate impacts:
 1. **☄️ Imminent Meteor**: Strike coordinates to spawn immediate fire zones that expand to neighboring tiles, burning resources and agents.
